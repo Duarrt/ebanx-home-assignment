@@ -31,14 +31,6 @@ public class AccountService {
         return account != null ? account.getBalance() : null;
     }
 
-    public ResponseEntity<Object> manageEvent(EventRequest event) {
-        EventType eventType = event.getType();
-
-        Function<EventRequest, ResponseEntity<Object>> function = functions.get(eventType);
-
-        return function.apply(event);
-    }
-
     private ResponseEntity<Object> doDeposit(EventRequest event) {
         String destination = event.getDestination();
         Integer amount = event.getAmount();
@@ -60,8 +52,11 @@ public class AccountService {
         Integer amount = event.getAmount();
 
         Account account = accounts.get(origin);
-        if (account == null || !account.withdraw(amount)) {
+        if (account == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(0);
+        }
+        if (!account.withdraw(amount)) {
+            return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(0);
         }
 
         int newBalance = account.getBalance();
@@ -84,7 +79,7 @@ public class AccountService {
         withdrawEvent.setAmount(amount);
 
         ResponseEntity<Object> withdrawResponse = doWithdraw(withdrawEvent);
-        if (withdrawResponse.getStatusCode() == HttpStatus.NOT_FOUND) {
+        if (!withdrawResponse.getStatusCode().is2xxSuccessful()) {
             return withdrawResponse;
         }
 
@@ -106,5 +101,13 @@ public class AccountService {
                         "origin", originAccount,
                         "destination", destinationAccount
                 ));
+    }
+
+    public ResponseEntity<Object> manageEvent(EventRequest event) {
+        EventType eventType = event.getType();
+
+        Function<EventRequest, ResponseEntity<Object>> function = functions.get(eventType);
+
+        return function.apply(event);
     }
 }
