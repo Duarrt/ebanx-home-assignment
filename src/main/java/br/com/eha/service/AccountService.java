@@ -2,6 +2,9 @@ package br.com.eha.service;
 
 import br.com.eha.dto.Account;
 import br.com.eha.dto.request.EventRequest;
+import br.com.eha.dto.response.DepositResponse;
+import br.com.eha.dto.response.TransferResponse;
+import br.com.eha.dto.response.WithdrawResponse;
 import br.com.eha.enums.EventType;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -41,10 +44,7 @@ public class AccountService {
         int newBalance = account.getBalance();
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(Map.of(
-                        "destination",
-                        new Account(destination, newBalance)
-                ));
+                .body(new DepositResponse(new Account(destination, newBalance)));
     }
 
     private ResponseEntity<Object> doWithdraw(EventRequest event) {
@@ -62,10 +62,7 @@ public class AccountService {
         int newBalance = account.getBalance();
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(Map.of(
-                        "origin",
-                        new Account(origin, newBalance)
-                ));
+                .body(new WithdrawResponse(new Account(origin, newBalance)));
     }
 
     private ResponseEntity<Object> doTransfer(EventRequest event) {
@@ -83,8 +80,7 @@ public class AccountService {
             return withdrawResponse;
         }
 
-        Object withdrawResponseBody = withdrawResponse.getBody();
-        Account originAccount = (Account) ((Map<?, ?>) withdrawResponseBody).get("origin");
+        Account originAccount = ((WithdrawResponse) withdrawResponse.getBody()).origin();
 
         EventRequest depositEvent = new EventRequest();
         depositEvent.setType(EventType.DEPOSIT);
@@ -93,14 +89,10 @@ public class AccountService {
 
         ResponseEntity<Object> depositResponse = doDeposit(depositEvent);
 
-        Object depositResponseBody = depositResponse.getBody();
-        Account destinationAccount = (Account) ((Map<?, ?>) depositResponseBody).get("destination");
+        Account destinationAccount = ((DepositResponse) depositResponse.getBody()).destination();
 
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(Map.of(
-                        "origin", originAccount,
-                        "destination", destinationAccount
-                ));
+                .body(new TransferResponse(originAccount, destinationAccount));
     }
 
     public ResponseEntity<Object> manageEvent(EventRequest event) {
