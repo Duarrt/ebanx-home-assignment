@@ -82,4 +82,99 @@ class AccountControllerTest {
                     .andExpect(jsonPath("$.destination.balance").value(20));
         }
     }
+
+    @Nested
+    class Withdraw {
+
+        @Test
+        void fromNonExistingAccountReturns404WithZero() throws Exception {
+            postEvent("{\"type\":\"withdraw\",\"origin\":\"200\",\"amount\":10}")
+                    .andExpect(status().isNotFound())
+                    .andExpect(content().string("0"));
+        }
+
+        @Test
+        void fromExistingAccountReturnsUpdatedBalance() throws Exception {
+            postEvent("{\"type\":\"deposit\",\"destination\":\"100\",\"amount\":20}");
+
+            postEvent("{\"type\":\"withdraw\",\"origin\":\"100\",\"amount\":5}")
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.origin.id").value("100"))
+                    .andExpect(jsonPath("$.origin.balance").value(15));
+        }
+
+        @Test
+        void withInsufficientFundsReturns422() throws Exception {
+            postEvent("{\"type\":\"deposit\",\"destination\":\"100\",\"amount\":10}");
+
+            postEvent("{\"type\":\"withdraw\",\"origin\":\"100\",\"amount\":50}")
+                    .andExpect(status().isUnprocessableEntity())
+                    .andExpect(content().string("0"));
+        }
+    }
+
+    @Nested
+    class Transfer {
+
+        @Test
+        void betweenExistingAccounts() throws Exception {
+            postEvent("{\"type\":\"deposit\",\"destination\":\"100\",\"amount\":15}");
+
+            postEvent("{\"type\":\"transfer\",\"origin\":\"100\",\"destination\":\"300\",\"amount\":15}")
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.origin.id").value("100"))
+                    .andExpect(jsonPath("$.origin.balance").value(0))
+                    .andExpect(jsonPath("$.destination.id").value("300"))
+                    .andExpect(jsonPath("$.destination.balance").value(15));
+        }
+
+        @Test
+        void fromNonExistingOriginReturns404WithZero() throws Exception {
+            postEvent("{\"type\":\"transfer\",\"origin\":\"200\",\"destination\":\"300\",\"amount\":15}")
+                    .andExpect(status().isNotFound())
+                    .andExpect(content().string("0"));
+        }
+
+        @Test
+        void withInsufficientFundsReturns422AndDoesNotMoveMoney() throws Exception {
+            postEvent("{\"type\":\"deposit\",\"destination\":\"100\",\"amount\":10}");
+
+            postEvent("{\"type\":\"transfer\",\"origin\":\"100\",\"destination\":\"300\",\"amount\":50}")
+                    .andExpect(status().isUnprocessableEntity())
+                    .andExpect(content().string("0"));
+
+            // origin keeps its balance...
+            mockMvc.perform(get("/balance").param("account_id", "100"))
+                    .andExpect(status().isOk())
+                    .andExpect(content().string("10"));
+
+            // ...and destination was never created
+            mockMvc.perform(get("/balance").param("account_id", "300"))
+                    .andExpect(status().isNotFound());
+        }
+    }
+
+    @Nested
+    class EventTypeParsing {
+
+        @Test
+        void acceptsUppercaseType() throws Exception {
+            postEvent("{\"type\":\"DEPOSIT\",\"destination\":\"100\",\"amount\":10}")
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.destination.balance").value(10));
+        }
+
+        @Test
+        void acceptsMixedCaseType() throws Exception {
+            postEvent("{\"type\":\"Deposit\",\"destination\":\"100\",\"amount\":10}")
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.destination.balance").value(10));
+        }
+
+        @Test
+        void rejectsUnknownTypeWithBadRequest() throws Exception {
+            postEvent("{\"type\":\"foo\",\"destination\":\"100\",\"amount\":10}")
+                    .andExpect(status().isBadRequest());
+        }
+    }
 }
