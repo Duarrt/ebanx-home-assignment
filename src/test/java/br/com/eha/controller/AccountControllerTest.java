@@ -81,6 +81,23 @@ class AccountControllerTest {
                     .andExpect(jsonPath("$.destination.id").value("100"))
                     .andExpect(jsonPath("$.destination.balance").value(20));
         }
+
+        @Test
+        void negativeAndZeroAmount() throws Exception {
+            postEvent("{\"type\":\"deposit\",\"destination\":\"100\",\"amount\":10}");
+
+            postEvent("{\"type\":\"deposit\",\"destination\":\"100\",\"amount\":-10}")
+                    .andExpect(status().isBadRequest())
+                    .andExpect(content().string("0"));
+
+            postEvent("{\"type\":\"deposit\",\"destination\":\"100\",\"amount\":0}")
+                    .andExpect(status().isBadRequest())
+                    .andExpect(content().string("0"));
+
+            postEvent("{\"type\":\"deposit\",\"destination\":\"100\",\"amount\":\"\"}")
+                    .andExpect(status().isBadRequest())
+                    .andExpect(content().string("0"));
+        }
     }
 
     @Nested

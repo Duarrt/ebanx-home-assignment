@@ -24,7 +24,7 @@ public class AccountService {
         return account != null ? account.getBalance() : null;
     }
 
-    public Account deposit(String destination, int amount) {
+    public Account deposit(String destination, Integer amount) {
         validateAmount(amount);
 
         Account account = accounts.computeIfAbsent(destination, id -> new Account(id, 0));
@@ -32,7 +32,7 @@ public class AccountService {
         return account;
     }
 
-    public Account withdraw(String origin, int amount) {
+    public Account withdraw(String origin, Integer amount) {
         validateAmount(amount);
 
         Account account = accounts.get(origin);
@@ -51,8 +51,8 @@ public class AccountService {
         return new TransferResult(from, to);
     }
 
-    private void validateAmount(int amount) {
-        if (amount <= 0) {
+    private void validateAmount(Integer amount) {
+        if (amount == null || amount <= 0) {
             throw new InvalidAmountException(amount);
         }
     }
