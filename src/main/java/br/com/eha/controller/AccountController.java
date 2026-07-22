@@ -82,7 +82,7 @@ public class AccountController {
     }
 
     @ExceptionHandler(InvalidAmountException.class)
-    public ResponseEntity<Object> handleInsufficientFunds(InvalidAmountException ex) {
+    public ResponseEntity<Object> handleInvalidAmount(InvalidAmountException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(0);
     }
 }
