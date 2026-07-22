@@ -4,6 +4,7 @@ import br.com.eha.dto.Account;
 import br.com.eha.dto.TransferResult;
 import br.com.eha.exception.AccountNotFoundException;
 import br.com.eha.exception.InsufficientFundsException;
+import br.com.eha.exception.InvalidAmountException;
 import org.springframework.stereotype.Service;
 
 import java.util.Map;
@@ -24,12 +25,16 @@ public class AccountService {
     }
 
     public Account deposit(String destination, int amount) {
+        validateAmount(amount);
+
         Account account = accounts.computeIfAbsent(destination, id -> new Account(id, 0));
         account.deposit(amount);
         return account;
     }
 
     public Account withdraw(String origin, int amount) {
+        validateAmount(amount);
+
         Account account = accounts.get(origin);
         if (account == null) {
             throw new AccountNotFoundException(origin);
@@ -44,5 +49,11 @@ public class AccountService {
         Account from = withdraw(origin, amount);
         Account to = deposit(destination, amount);
         return new TransferResult(from, to);
+    }
+
+    private void validateAmount(int amount) {
+        if (amount <= 0) {
+            throw new InvalidAmountException(amount);
+        }
     }
 }

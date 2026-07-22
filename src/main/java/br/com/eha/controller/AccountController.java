@@ -9,6 +9,7 @@ import br.com.eha.dto.response.WithdrawResponse;
 import br.com.eha.enums.EventType;
 import br.com.eha.exception.AccountNotFoundException;
 import br.com.eha.exception.InsufficientFundsException;
+import br.com.eha.exception.InvalidAmountException;
 import br.com.eha.service.AccountService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -78,5 +79,10 @@ public class AccountController {
     @ExceptionHandler(InsufficientFundsException.class)
     public ResponseEntity<Object> handleInsufficientFunds(InsufficientFundsException ex) {
         return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(0);
+    }
+
+    @ExceptionHandler(InvalidAmountException.class)
+    public ResponseEntity<Object> handleInsufficientFunds(InvalidAmountException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(0);
     }
 }
